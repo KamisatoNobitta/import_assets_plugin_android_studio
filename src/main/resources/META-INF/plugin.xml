@@ -34,6 +34,12 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceImplementation="com.light.import_image_tools.settings.AppSettingsState"/>
 
+        <applicationConfigurable
+                parentId="tools"
+                instance="com.light.import_image_tools.settings.AppSettingsConfigurable"
+                id="com.light.import_image_tools.settings.AppSettingsConfigurable"
+                displayName="Import Image Tools"/>
     </extensions>
 </idea-plugin>
