@@ -21,12 +21,8 @@ object ImageImporter {
     fun importImages(project: Project, files: List<VirtualFile>): List<String> {
         val settings = AppSettingsState.instance
         val projectBasePath = project.basePath ?: return emptyList()
-
-        val rasterExts = settings.rasterImageExtensions.split(',').map { it.trim().toLowerCase() }.toSet()
-        val vectorExts = settings.vectorImageExtensions.split(',').map { it.trim().toLowerCase() }.toSet()
-        
         val scaleMap = parseScaleMappings(settings.scaleMappings)
-
+        
         val allFiles = files.flatMap { if (it.isDirectory) it.children.toList() else listOf(it) }
 
         val generatedCode = mutableListOf<String>()
@@ -34,16 +30,13 @@ object ImageImporter {
 
         for (file in allFiles) {
             val extension = file.extension?.toLowerCase() ?: continue
+            
+            // Find the first matching rule for the given file extension
+            val rule = settings.importRules.find {
+                it.extensions.split(',').map { ext -> ext.trim().toLowerCase() }.contains(extension)
+            } ?: continue // If no rule matches, skip the file
 
-            val isRaster = extension in rasterExts
-            val isVector = extension in vectorExts
-
-            if (!isRaster && !isVector) {
-                continue // Skip unsupported files
-            }
-
-            val targetPath = if (isRaster) settings.rasterPath else settings.vectorPath
-            val targetBaseDir = File("$projectBasePath/$targetPath")
+            val targetBaseDir = File("$projectBasePath/${rule.targetDirectory}")
             if (!targetBaseDir.exists()) {
                 targetBaseDir.mkdirs()
             }
@@ -52,8 +45,8 @@ object ImageImporter {
             var newFileName = file.name
             var baseName = file.nameWithoutExtension
 
-            // Apply scaling logic only for raster images
-            if (isRaster) {
+            // Apply scaling logic only if the rule says so
+            if (rule.applyScaling) {
                 val sortedSuffixes = scaleMap.keys.sortedByDescending { it.length }
                 for (suffix in sortedSuffixes) {
                     if (file.nameWithoutExtension.endsWith(suffix)) {
@@ -80,7 +73,7 @@ object ImageImporter {
             if (processedBaseNames.add(baseName)) {
                 val variableName = baseName.replaceFirstChar { it.lowercase(Locale.ROOT) }
                 val relativePath = targetFile.path.removePrefix("$projectBasePath/").removePrefix("/")
-                val codeLine = settings.codeTemplate
+                val codeLine = rule.codeTemplate
                     .replace("\${VARIABLE_NAME}", variableName)
                     .replace("\${RELATIVE_PATH}", relativePath)
                     .replace("\${FILE_NAME}", newFileName)

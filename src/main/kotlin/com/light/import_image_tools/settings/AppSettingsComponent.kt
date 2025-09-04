@@ -1,60 +1,70 @@
 package com.light.import_image_tools.settings
 
+import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextArea
-import com.intellij.ui.components.JBTextField
-import com.intellij.util.ui.FormBuilder
+import com.intellij.ui.table.JBTable
+import com.intellij.util.ui.JBDimension
+import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.JScrollPane
+import javax.swing.ListSelectionModel
+import javax.swing.border.EmptyBorder
+import javax.swing.table.AbstractTableModel
 
 class AppSettingsComponent {
 
     val panel: JPanel
-    private val rasterPathField = JBTextField()
-    private val rasterExtensionsField = JBTextField()
-    private val vectorPathField = JBTextField()
-    private val vectorExtensionsField = JBTextField()
+    private val rulesTableModel = RulesTableModel(mutableListOf())
+    private val rulesTable = JBTable(rulesTableModel)
     private val scaleMappingsComponent = JBTextArea(5, 40)
-    private val codeTemplateComponent = JBTextField()
 
     init {
-        panel = FormBuilder.createFormBuilder()
-            .addLabeledComponent(JBLabel("Raster image path (for png, jpg...):"), rasterPathField, 1, false)
-            .addLabeledComponent(JBLabel("Raster image extensions (comma-separated):"), rasterExtensionsField, 1, false)
-            .addLabeledComponent(JBLabel("Vector image path (for svg...):"), vectorPathField, 1, false)
-            .addLabeledComponent(JBLabel("Vector image extensions (comma-separated):"), vectorExtensionsField, 1, false)
-            .addLabeledComponent(JBLabel("Scale mappings (suffix=directory):"), scaleMappingsComponent, 1, true)
-            .addLabeledComponent(JBLabel("Code generation template(args:\${VARIABLE_NAME} \${RELATIVE_PATH} \${FILE_NAME}):"), codeTemplateComponent, 1, true)
-            .addComponentFillVertically(JPanel(), 0)
-            .panel
+        // Table setup
+        rulesTable.selectionModel.selectionMode = ListSelectionModel.SINGLE_SELECTION
+        val decorator = ToolbarDecorator.createDecorator(rulesTable)
+            .setAddAction { rulesTableModel.addRow() }
+            .setRemoveAction { rulesTableModel.removeRow(rulesTable.selectedRow) }
+
+        val decoratedTable = decorator.createPanel()
+
+        // Scale Mappings setup
+        val scaleMappingsPanel = JPanel(BorderLayout(0, 5))
+        scaleMappingsPanel.add(JBLabel("缩放规则映射 (Scale Mappings):"), BorderLayout.NORTH)
+        scaleMappingsPanel.add(JScrollPane(scaleMappingsComponent), BorderLayout.CENTER)
+        scaleMappingsPanel.border = EmptyBorder(0, 0, 10, 0) // Add some space below
+
+        // Description Panel setup
+        val descriptionText = """
+            <html>
+            <b>使用说明:</b>
+            <ul>
+                <li><b>目标文件夹:</b> 相对于项目根目录的路径, 例如: <code>lib/resources/images</code></li>
+                <li><b>识别三倍图:</b> 若勾选, 将使用缩放规则映射(Scale Mappings)进行识别 (例如 @2x, @3x)。</li>
+                <li><b>代码模板可用占位符:</b>
+                    <ul>
+                        <li><code>${"$"}{VARIABLE_NAME}</code>: 根据文件名生成的变量名 (首字母小写驼峰)。</li>
+                        <li><code>${"$"}{RELATIVE_PATH}</code>: 文件导入后相对于项目根目录的完整路径。</li>
+                        <li><code>${"$"}{FILE_NAME}</code>: 导入后包含后缀的完整文件名。</li>
+                    </ul>
+                </li>
+            </ul>
+            </html>
+        """.trimIndent()
+        val descriptionLabel = JBLabel(descriptionText)
+        descriptionLabel.border = EmptyBorder(10, 0, 0, 0) // Add some space above
+
+        // Main Panel layout
+        panel = JPanel(BorderLayout(0, 10))
+        panel.add(scaleMappingsPanel, BorderLayout.NORTH)
+        panel.add(decoratedTable, BorderLayout.CENTER)
+        panel.add(descriptionLabel, BorderLayout.SOUTH)
+        panel.preferredSize = JBDimension(800, 600)
     }
 
     val preferredFocusedComponent: JComponent
-        get() = rasterPathField
-
-    var rasterPath: String
-        get() = rasterPathField.text
-        set(value) {
-            rasterPathField.text = value
-        }
-
-    var rasterExtensions: String
-        get() = rasterExtensionsField.text
-        set(value) {
-            rasterExtensionsField.text = value
-        }
-    
-    var vectorPath: String
-        get() = vectorPathField.text
-        set(value) {
-            vectorPathField.text = value
-        }
-
-    var vectorExtensions: String
-        get() = vectorExtensionsField.text
-        set(value) {
-            vectorExtensionsField.text = value
-        }
+        get() = rulesTable
 
     var scaleMappings: String
         get() = scaleMappingsComponent.text
@@ -62,9 +72,71 @@ class AppSettingsComponent {
             scaleMappingsComponent.text = value
         }
 
-    var codeTemplate: String
-        get() = codeTemplateComponent.text
-        set(value) {
-            codeTemplateComponent.text = value
+    fun getRules(): List<ImageImportRule> = rulesTableModel.getData()
+
+    fun setRules(rules: List<ImageImportRule>) {
+        rulesTableModel.setData(rules)
+    }
+}
+
+class RulesTableModel(private var rules: MutableList<ImageImportRule>) : AbstractTableModel() {
+
+    private val columnNames = arrayOf("名称", "文件后缀", "目标文件夹", "代码模板", "识别三倍图")
+
+    override fun getRowCount(): Int = rules.size
+    override fun getColumnCount(): Int = columnNames.size
+    override fun getColumnName(column: Int): String = columnNames[column]
+    override fun getColumnClass(columnIndex: Int): Class<*> {
+        return when (columnIndex) {
+            4 -> Boolean::class.java
+            else -> String::class.java
         }
+    }
+
+    override fun isCellEditable(rowIndex: Int, columnIndex: Int): Boolean = true
+
+    override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
+        val rule = rules[rowIndex]
+        return when (columnIndex) {
+            0 -> rule.name
+            1 -> rule.extensions
+            2 -> rule.targetDirectory
+            3 -> rule.codeTemplate
+            4 -> rule.applyScaling
+            else -> ""
+        }
+    }
+
+    override fun setValueAt(aValue: Any, rowIndex: Int, columnIndex: Int) {
+        val rule = rules[rowIndex]
+        when (columnIndex) {
+            0 -> rule.name = aValue as String
+            1 -> rule.extensions = aValue as String
+            2 -> rule.targetDirectory = aValue as String
+            3 -> rule.codeTemplate = aValue as String
+            4 -> rule.applyScaling = aValue as Boolean
+        }
+        fireTableCellUpdated(rowIndex, columnIndex)
+    }
+
+    fun addRow() {
+        rules.add(ImageImportRule())
+        fireTableRowsInserted(rules.size - 1, rules.size - 1)
+    }
+
+    fun removeRow(rowIndex: Int) {
+        if (rowIndex >= 0 && rowIndex < rules.size) {
+            rules.removeAt(rowIndex)
+            fireTableRowsDeleted(rowIndex, rowIndex)
+        }
+    }
+
+    fun setData(data: List<ImageImportRule>) {
+        rules = ArrayList(data) // Use a copy to detect modifications
+        fireTableDataChanged()
+    }
+
+    fun getData(): List<ImageImportRule> {
+        return rules
+    }
 }

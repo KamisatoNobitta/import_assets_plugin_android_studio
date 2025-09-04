@@ -1,6 +1,7 @@
 package com.light.import_image_tools.settings
 
 import com.intellij.openapi.options.Configurable
+import com.intellij.util.xmlb.XmlSerializerUtil
 import org.jetbrains.annotations.Nls
 import javax.swing.JComponent
 
@@ -24,32 +25,20 @@ class AppSettingsConfigurable : Configurable {
 
     override fun isModified(): Boolean {
         val settings = AppSettingsState.instance
-        return mySettingsComponent?.rasterPath != settings.rasterPath ||
-                mySettingsComponent?.rasterExtensions != settings.rasterImageExtensions ||
-                mySettingsComponent?.vectorPath != settings.vectorPath ||
-                mySettingsComponent?.vectorExtensions != settings.vectorImageExtensions ||
-                mySettingsComponent?.scaleMappings != settings.scaleMappings ||
-                mySettingsComponent?.codeTemplate != settings.codeTemplate
+        return mySettingsComponent?.getRules() != settings.importRules ||
+                mySettingsComponent?.scaleMappings != settings.scaleMappings
     }
 
     override fun apply() {
         val settings = AppSettingsState.instance
-        settings.rasterPath = mySettingsComponent?.rasterPath ?: ""
-        settings.rasterImageExtensions = mySettingsComponent?.rasterExtensions ?: ""
-        settings.vectorPath = mySettingsComponent?.vectorPath ?: ""
-        settings.vectorImageExtensions = mySettingsComponent?.vectorExtensions ?: ""
+        settings.importRules = mySettingsComponent?.getRules()?.toMutableList() ?: mutableListOf()
         settings.scaleMappings = mySettingsComponent?.scaleMappings ?: ""
-        settings.codeTemplate = mySettingsComponent?.codeTemplate ?: ""
     }
 
     override fun reset() {
         val settings = AppSettingsState.instance
-        mySettingsComponent?.rasterPath = settings.rasterPath
-        mySettingsComponent?.rasterExtensions = settings.rasterImageExtensions
-        mySettingsComponent?.vectorPath = settings.vectorPath
-        mySettingsComponent?.vectorExtensions = settings.vectorImageExtensions
+        mySettingsComponent?.setRules(settings.importRules)
         mySettingsComponent?.scaleMappings = settings.scaleMappings
-        mySettingsComponent?.codeTemplate = settings.codeTemplate
     }
 
     override fun disposeUIResources() {
