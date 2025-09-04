@@ -78,7 +78,7 @@ object ImageImporter {
             }
 
             if (processedBaseNames.add(baseName)) {
-                val variableName = baseName.toUpperCase(Locale.ROOT)
+                val variableName = baseName.replaceFirstChar { it.lowercase(Locale.ROOT) }
                 val relativePath = targetFile.path.removePrefix("$projectBasePath/").removePrefix("/")
                 val codeLine = settings.codeTemplate
                     .replace("\${VARIABLE_NAME}", variableName)
