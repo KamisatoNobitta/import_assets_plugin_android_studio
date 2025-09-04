@@ -32,8 +32,9 @@ data class AppSettingsState(
                     name = "Raster Images",
                     extensions = "png, jpg, jpeg",
                     targetDirectory = "lib/resources/images",
-                    codeTemplate = "val \${VARIABLE_NAME} = \"\${FILE_NAME}\"",
-                    applyScaling = true
+                    codeTemplate = "  static const String \${VARIABLE_NAME} = '\$imageBasePath/\${FILE_NAME}';",
+                    applyScaling = true,
+                    pasteTarget = "lib/common/images.dart::}::before"
                 )
             )
             importRules.add(
@@ -41,8 +42,19 @@ data class AppSettingsState(
                     name = "Vector Images",
                     extensions = "svg",
                     targetDirectory = "lib/resources/svgs",
-                    codeTemplate = "val \${VARIABLE_NAME} = \"\${FILE_NAME}\"",
-                    applyScaling = false
+                    codeTemplate = "  static const String \${VARIABLE_NAME} = '\$svgBasePath/\${FILE_NAME}';",
+                    applyScaling = false,
+                    pasteTarget = "lib/common/svgs.dart::}::before"
+                )
+            )
+            importRules.add(
+                ImageImportRule(
+                    name = "GIF",
+                    extensions = "gif",
+                    targetDirectory = "lib/resources/gifs",
+                    codeTemplate = "String \${VARIABLE_NAME} = _gifPath('\${FILE_NAME}');",
+                    applyScaling = false,
+                    pasteTarget = "lib/common/medias.dart:://gif_end::before"
                 )
             )
         }

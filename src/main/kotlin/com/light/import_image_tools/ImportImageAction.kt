@@ -23,12 +23,8 @@ class ImportImageAction : AnAction() {
 
         FileChooser.chooseFiles(descriptor, project, null) { selectedFiles ->
             if (selectedFiles.isNotEmpty()) {
-                val generatedCode = ImageImporter.importImages(project, selectedFiles)
-                if (generatedCode.isNotEmpty()) {
-                    val codeAsString = generatedCode.joinToString("\n")
-                    GeneratedCodeDialog(project, codeAsString).show()
-                }
-                // Refresh the project view to show the new files
+                ImageImporter.importImages(project, selectedFiles)
+                // Refresh the project view to show the new files, including the pasted code.
                 VfsUtil.markDirtyAndRefresh(true, true, true, project.baseDir)
             }
         }
