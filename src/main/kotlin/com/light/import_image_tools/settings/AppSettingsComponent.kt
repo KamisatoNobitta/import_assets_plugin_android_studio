@@ -24,7 +24,7 @@ class AppSettingsComponent {
             .addLabeledComponent(JBLabel("Vector image path (for svg...):"), vectorPathField, 1, false)
             .addLabeledComponent(JBLabel("Vector image extensions (comma-separated):"), vectorExtensionsField, 1, false)
             .addLabeledComponent(JBLabel("Scale mappings (suffix=directory):"), scaleMappingsComponent, 1, true)
-            .addLabeledComponent(JBLabel("Code generation template:"), codeTemplateComponent, 1, false)
+            .addLabeledComponent(JBLabel("Code generation template(args:\${VARIABLE_NAME} \${RELATIVE_PATH} \${FILE_NAME}):"), codeTemplateComponent, 1, true)
             .addComponentFillVertically(JPanel(), 0)
             .panel
     }

@@ -16,7 +16,7 @@ data class AppSettingsState(
     var vectorPath: String = "lib/resources/svgs",
     var vectorImageExtensions: String = "svg",
     var scaleMappings: String = "@3x=3.0x\n@2x=2.0x",
-    var codeTemplate: String = "val \${VARIABLE_NAME} = \"\${RELATIVE_PATH}\""
+    var codeTemplate: String = "val \${VARIABLE_NAME} = \"\${RELATIVE_PATH}\" or \"\${FILE_NAME}\""
 ) : PersistentStateComponent<AppSettingsState> {
 
     override fun getState(): AppSettingsState {

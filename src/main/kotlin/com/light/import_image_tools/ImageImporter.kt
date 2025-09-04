@@ -83,6 +83,7 @@ object ImageImporter {
                 val codeLine = settings.codeTemplate
                     .replace("\${VARIABLE_NAME}", variableName)
                     .replace("\${RELATIVE_PATH}", relativePath)
+                    .replace("\${FILE_NAME}", newFileName)
                 generatedCode.add(codeLine)
             }
         }
