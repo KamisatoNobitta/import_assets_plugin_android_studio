@@ -69,8 +69,9 @@ class AppSettingsComponent {
                         <li><b>文件路径:</b> 必填, 相对于项目根目录, 如 <code>src/R.kt</code></li>
                         <li><b>锚点文本:</b> 必填, 文件中用于定位的唯一文本, 如 <code>// ANCHOR</code></li>
                         <li><b>粘贴位置:</b> 可选, <code>before</code> 或 <code>after</code>, 默认为 <code>after</code>。</li>
-                        <li><b>例子:</b>放在<code>//gif_end</code>的前面<code>lib/common/medias.dart:://gif_end::before</code></li>
                         <li>如果留空, 插件将弹出代码复制窗口。</li>
+                        <li><b>样例 </b>放在<code>//gif_end</code>的前面: <code>lib/common/medias.dart:://gif_end::before</code></li>
+                        <li><b>样例 </b>放在<code>class ImageNames {</code>的后面: <code>lib/common/medias.dart::class ImageNames {</code></li>
                     </ul>
                 </li>
             </ul>
