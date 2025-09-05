@@ -9,11 +9,13 @@ import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBDimension
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
+import java.awt.event.KeyEvent
 import javax.swing.JCheckBox
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JScrollPane
 import javax.swing.ListSelectionModel
+import javax.swing.KeyStroke
 import javax.swing.border.EmptyBorder
 import javax.swing.table.AbstractTableModel
 
@@ -28,6 +30,9 @@ class AppSettingsComponent {
     init {
         // Table setup
         rulesTable.selectionModel.selectionMode = ListSelectionModel.SINGLE_SELECTION
+        // Change Enter key behavior to start editing
+        val enterKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0)
+        rulesTable.getInputMap(JComponent.WHEN_FOCUSED).put(enterKeyStroke, "startEditing")
 
         // Set column widths
         val columnModel = rulesTable.columnModel

@@ -11,6 +11,7 @@ import com.intellij.util.SVGLoader
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Image
+import java.awt.event.KeyEvent
 import javax.imageio.ImageIO
 import javax.swing.*
 import javax.swing.table.AbstractTableModel
@@ -37,6 +38,11 @@ class RenameImagesDialog(
 
     init {
         title = "重命名&预览"
+
+        // Change Enter key behavior to start editing
+        val enterKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0)
+        table.getInputMap(JComponent.WHEN_FOCUSED).put(enterKeyStroke, "startEditing")
+
         previewPanel.add(previewLabel, BorderLayout.CENTER)
         previewPanel.preferredSize = Dimension(300, 200)
 
