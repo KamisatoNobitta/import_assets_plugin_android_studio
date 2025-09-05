@@ -29,6 +29,15 @@ class AppSettingsComponent {
         // Table setup
         rulesTable.selectionModel.selectionMode = ListSelectionModel.SINGLE_SELECTION
 
+        // Set column widths
+        val columnModel = rulesTable.columnModel
+        columnModel.getColumn(0).preferredWidth = 80    // 名称
+        columnModel.getColumn(1).preferredWidth = 100   // 文件后缀
+        columnModel.getColumn(2).preferredWidth = 150   // 目标文件夹
+        columnModel.getColumn(3).preferredWidth = 300   // 代码模板
+        columnModel.getColumn(4).preferredWidth = 50    // 识别三倍图
+        columnModel.getColumn(5).preferredWidth = 250   // 自动粘贴目标
+
         // Use IntelliJ's specific renderer and editor for boolean columns to ensure
         // proper event handling and UI consistency within the settings panel.
         val booleanColumnIndex = 4
@@ -91,7 +100,7 @@ class AppSettingsComponent {
 
         val southPanel = JPanel(BorderLayout(0, 10))
         southPanel.add(scaleMappingsPanel, BorderLayout.NORTH)
-        southPanel.add(descriptionLabel, BorderLayout.SOUTH)
+//        southPanel.add(descriptionLabel, BorderLayout.SOUTH)
 
         // Main content panel that holds all components
         val contentPanel = JPanel(BorderLayout(0, 10))
