@@ -3,6 +3,7 @@ package com.light.import_image_tools
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.table.JBTable
@@ -69,8 +70,10 @@ class RenameImagesDialog(
         scrollPane.preferredSize = Dimension(400, 300)
         previewPanel.preferredSize = Dimension(300, 300)
 
-        val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollPane, previewPanel)
-        splitPane.resizeWeight = 0.5
+        val splitPane = OnePixelSplitter(false) // false for horizontal split
+        splitPane.firstComponent = scrollPane
+        splitPane.secondComponent = previewPanel
+        splitPane.proportion = 0.5f
         return splitPane
     }
 
