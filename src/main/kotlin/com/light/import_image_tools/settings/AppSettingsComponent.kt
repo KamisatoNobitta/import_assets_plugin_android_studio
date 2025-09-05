@@ -1,5 +1,7 @@
 package com.light.import_image_tools.settings
 
+import com.intellij.ui.BooleanTableCellEditor
+import com.intellij.ui.BooleanTableCellRenderer
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextArea
@@ -23,6 +25,14 @@ class AppSettingsComponent {
     init {
         // Table setup
         rulesTable.selectionModel.selectionMode = ListSelectionModel.SINGLE_SELECTION
+
+        // Use IntelliJ's specific renderer and editor for boolean columns to ensure
+        // proper event handling and UI consistency within the settings panel.
+        val booleanColumnIndex = 4
+        val booleanColumn = rulesTable.getColumnModel().getColumn(booleanColumnIndex)
+        booleanColumn.setCellRenderer(BooleanTableCellRenderer())
+        booleanColumn.setCellEditor(BooleanTableCellEditor())
+
         val decorator = ToolbarDecorator.createDecorator(rulesTable)
             .setAddAction { rulesTableModel.addRow() }
             .setRemoveAction { rulesTableModel.removeRow(rulesTable.selectedRow) }
@@ -128,6 +138,7 @@ class RulesTableModel(private var rules: MutableList<ImageImportRule>) : Abstrac
             4 -> rule.applyScaling = aValue as Boolean
             5 -> rule.pasteTarget = aValue as String
         }
+        // With the correct cell editor, the more efficient cell-specific update event is sufficient.
         fireTableCellUpdated(rowIndex, columnIndex)
     }
 
@@ -144,7 +155,9 @@ class RulesTableModel(private var rules: MutableList<ImageImportRule>) : Abstrac
     }
 
     fun setData(data: List<ImageImportRule>) {
-        rules = ArrayList(data) // Use a copy to detect modifications
+        // Create a deep copy of the rules to avoid modifying the original state directly.
+        // This is crucial for the settings UI to correctly detect changes.
+        rules = data.map { it.copy() }.toMutableList()
         fireTableDataChanged()
     }
 
