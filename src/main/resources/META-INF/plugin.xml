@@ -34,6 +34,31 @@
         <li>插件将根据您配置的规则处理文件。</li>
         <li>在 <b>设置 (Settings/Preferences) &rarr; 工具 (Tools) &rarr; Import Image Tools</b> 中配置您的导入规则。</li>
     </ol>
+
+    <h3>配置说明:</h3>
+    <ul>
+        <li>插件将从上到下查找<b>第一个匹配文件后缀</b>的规则来处理导入的文件。</li>
+        <li><b>目标文件夹:</b> 相对于项目根目录的路径, 例如: <code>lib/resources/images</code></li>
+        <li><b>识别三倍图:</b> 若勾选, 将使用缩放规则映射(Scale Mappings)进行识别 (例如 @2x, @3x)。</li>
+        <li><b>代码模板可用占位符:</b>
+            <ul>
+                <li><code>${VARIABLE_NAME}</code>: 根据文件名生成的变量名 (首字母小写驼峰)。</li>
+                <li><code>${RELATIVE_PATH}</code>: 文件导入后相对于项目根目录的完整路径。</li>
+                <li><code>${FILE_NAME}</code>: 导入后包含后缀的完整文件名。</li>
+            </ul>
+        </li>
+         <li><b>自动粘贴目标 (可选):</b>
+            <ul>
+                <li>格式: <code>文件路径::锚点文本::[before|after]</code></li>
+                <li><b>文件路径:</b> 必填, 相对于项目根目录, 如 <code>src/R.kt</code></li>
+                <li><b>锚点文本:</b> 必填, 文件中用于定位的唯一文本, 如 <code>// ANCHOR</code></li>
+                <li><b>粘贴位置:</b> 可选, <code>before</code> 或 <code>after</code>, 默认为 <code>after</code>。</li>
+                <li>如果留空, 插件将弹出代码复制窗口。</li>
+                <li><b>样例 </b>放在<code>//gif_end</code>的前面: <code>lib/common/medias.dart:://gif_end::before</code></li>
+                <li><b>样例 </b>放在<code>class ImageNames {</code>的后面: <code>lib/common/medias.dart::class ImageNames {</code></li>
+            </ul>
+        </li>
+    </ul>
   ]]></description>
 
     <!-- Product and plugin compatibility requirements.
