@@ -7,6 +7,7 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBDimension
+import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -17,7 +18,7 @@ import javax.swing.table.AbstractTableModel
 
 class AppSettingsComponent {
 
-    val panel: JPanel
+    val panel: JComponent
     private val rulesTableModel = RulesTableModel(mutableListOf())
     private val rulesTable = JBTable(rulesTableModel)
     private val scaleMappingsComponent = JBTextArea(5, 40)
@@ -38,6 +39,8 @@ class AppSettingsComponent {
             .setRemoveAction { rulesTableModel.removeRow(rulesTable.selectedRow) }
 
         val decoratedTable = decorator.createPanel()
+        // Allow the table to shrink and grow naturally with the available space.
+        decoratedTable.preferredSize = JBDimension(600, 200)
 
         // Scale Mappings setup
         val scaleMappingsPanel = JPanel(BorderLayout(0, 5))
@@ -75,12 +78,16 @@ class AppSettingsComponent {
         val descriptionLabel = JBLabel(descriptionText)
         descriptionLabel.border = EmptyBorder(10, 0, 0, 0) // Add some space above
 
-        // Main Panel layout
-        panel = JPanel(BorderLayout(0, 10))
-        panel.add(scaleMappingsPanel, BorderLayout.NORTH)
-        panel.add(decoratedTable, BorderLayout.CENTER)
-        panel.add(descriptionLabel, BorderLayout.SOUTH)
-        panel.preferredSize = JBDimension(800, 600)
+        // Main content panel that holds all components
+        val contentPanel = JPanel(BorderLayout(0, 10))
+        contentPanel.add(scaleMappingsPanel, BorderLayout.NORTH)
+        contentPanel.add(decoratedTable, BorderLayout.CENTER)
+        contentPanel.add(descriptionLabel, BorderLayout.SOUTH)
+        contentPanel.border = JBUI.Borders.empty(10)
+
+        // The main panel is now a scroll pane to allow for vertical scrolling.
+        panel = JScrollPane(contentPanel)
+        panel.border = JBUI.Borders.empty()
     }
 
     val preferredFocusedComponent: JComponent
