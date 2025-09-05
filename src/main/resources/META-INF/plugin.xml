@@ -8,14 +8,32 @@
     <name>Import_image_tools_plugin</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor email="support@yourcompany.com" url="https://www.yourcompany.com">YourCompany</vendor>
+    <vendor url="https://github.com/your-github-repo">Your Name or Company</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
-    Enter short description for your plugin here.<br>
-    <em>most HTML tags may be used</em>
+    <h1>图片及资源导入助手</h1>
+    <p>简化将图片资产和其他资源导入项目的工作流程。</p>
+    
+    <h2>核心功能:</h2>
+    <ul>
+        <li><b>基于规则的导入:</b> 创建自定义规则以独立处理不同的文件类型 (例如 PNG, SVG 等)。</li>
+        <li><b>灵活的目标路径:</b> 为每条规则指定独一无二的目标文件夹。</li>
+        <li><b>自动识别多倍图:</b> 对位图(png, jpg等)自动处理如 <code>@2x</code> 和 <code>@3x</code> 这样的分辨率后缀，并将它们放入相应的子目录中。</li>
+        <li><b>自定义代码生成:</b> 为每条规则定义自己的代码模板，插件将为导入的资产生成变量声明。</li>
+        <li><b>代码自动粘贴:</b> 能够自动将生成的代码粘贴到指定文件的指定位置，完全自动化您的工作流程。</li>
+        <li><b>高度可配置:</b> 从文件处理规则到代码生成模板的所有方面，都可在设置面板中进行管理。</li>
+    </ul>
+
+    <h2>如何使用:</h2>
+    <ol>
+        <li>前往 <b>工具 (Tools) &rarr; 导入图片 (Import Images)</b> 来打开文件选择器。</li>
+        <li>选择您想要导入的文件或文件夹。</li>
+        <li>插件将根据您配置的规则处理文件。</li>
+        <li>在 <b>设置 (Settings/Preferences) &rarr; 工具 (Tools) &rarr; Import Image Tools</b> 中配置您的导入规则。</li>
+    </ol>
   ]]></description>
 
     <!-- Product and plugin compatibility requirements.
