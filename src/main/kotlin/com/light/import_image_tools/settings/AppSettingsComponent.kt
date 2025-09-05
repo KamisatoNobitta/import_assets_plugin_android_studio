@@ -9,6 +9,7 @@ import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBDimension
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
+import javax.swing.JCheckBox
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JScrollPane
@@ -22,6 +23,7 @@ class AppSettingsComponent {
     private val rulesTableModel = RulesTableModel(mutableListOf())
     private val rulesTable = JBTable(rulesTableModel)
     private val scaleMappingsComponent = JBTextArea(5, 40)
+    private val showRenameDialogCheckBox = JCheckBox("导入前弹窗重命名")
 
     init {
         // Table setup
@@ -41,6 +43,10 @@ class AppSettingsComponent {
         val decoratedTable = decorator.createPanel()
         // Allow the table to shrink and grow naturally with the available space.
         decoratedTable.preferredSize = JBDimension(600, 200)
+
+        // show rename dialog
+        val showRenameDialogPanel = JPanel(BorderLayout(0, 5))
+        showRenameDialogPanel.add(showRenameDialogCheckBox, BorderLayout.WEST)
 
         // Scale Mappings setup
         val scaleMappingsPanel = JPanel(BorderLayout(0, 5))
@@ -80,9 +86,14 @@ class AppSettingsComponent {
         val descriptionLabel = JBLabel(descriptionText)
         descriptionLabel.border = EmptyBorder(10, 0, 0, 0) // Add some space above
 
+        val topPanel = JPanel(BorderLayout(0, 10))
+        topPanel.add(showRenameDialogPanel, BorderLayout.NORTH)
+        topPanel.add(scaleMappingsPanel, BorderLayout.CENTER)
+
+
         // Main content panel that holds all components
         val contentPanel = JPanel(BorderLayout(0, 10))
-        contentPanel.add(scaleMappingsPanel, BorderLayout.NORTH)
+        contentPanel.add(topPanel, BorderLayout.NORTH)
         contentPanel.add(decoratedTable, BorderLayout.CENTER)
         contentPanel.add(descriptionLabel, BorderLayout.SOUTH)
         contentPanel.border = JBUI.Borders.empty(10)
@@ -94,6 +105,12 @@ class AppSettingsComponent {
 
     val preferredFocusedComponent: JComponent
         get() = rulesTable
+
+    var showRenameDialog: Boolean
+        get() = showRenameDialogCheckBox.isSelected
+        set(value) {
+            showRenameDialogCheckBox.isSelected = value
+        }
 
     var scaleMappings: String
         get() = scaleMappingsComponent.text

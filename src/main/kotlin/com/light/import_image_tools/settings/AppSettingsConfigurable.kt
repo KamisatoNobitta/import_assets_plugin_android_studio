@@ -26,19 +26,22 @@ class AppSettingsConfigurable : Configurable {
     override fun isModified(): Boolean {
         val settings = AppSettingsState.instance
         return mySettingsComponent?.getRules() != settings.importRules ||
-                mySettingsComponent?.scaleMappings != settings.scaleMappings
+                mySettingsComponent?.scaleMappings != settings.scaleMappings ||
+                mySettingsComponent?.showRenameDialog != settings.showRenameDialog
     }
 
     override fun apply() {
         val settings = AppSettingsState.instance
         settings.importRules = mySettingsComponent?.getRules()?.toMutableList() ?: mutableListOf()
         settings.scaleMappings = mySettingsComponent?.scaleMappings ?: ""
+        settings.showRenameDialog = mySettingsComponent?.showRenameDialog ?: true
     }
 
     override fun reset() {
         val settings = AppSettingsState.instance
         mySettingsComponent?.setRules(settings.importRules)
         mySettingsComponent?.scaleMappings = settings.scaleMappings
+        mySettingsComponent?.showRenameDialog = settings.showRenameDialog
     }
 
     override fun disposeUIResources() {

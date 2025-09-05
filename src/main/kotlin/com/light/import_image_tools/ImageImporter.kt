@@ -14,6 +14,45 @@ import java.util.*
 
 object ImageImporter {
 
+    fun groupImages(files: List<VirtualFile>, scaleMappings: String, rules: List<ImageImportRule>): List<GroupedImage> {
+        val allFilesRaw = files.flatMap { if (it.isDirectory) it.children.toList() else listOf(it) }
+
+        val allFiles = allFilesRaw.filter { file ->
+            val extension = file.extension?.lowercase(Locale.getDefault())
+            rules.any { rule ->
+                rule.extensions.split(',').map { ext -> ext.trim().lowercase(Locale.getDefault()) }.contains(extension)
+            }
+        }
+
+        val scaleMap = parseScaleMappings(scaleMappings)
+        val sortedSuffixes = scaleMap.keys.sortedByDescending { it.length }
+
+        val filesWithBaseName = allFiles.map { file ->
+            var baseName = file.nameWithoutExtension
+            for (suffix in sortedSuffixes) {
+                if (file.nameWithoutExtension.endsWith(suffix)) {
+                    baseName = file.nameWithoutExtension.removeSuffix(suffix)
+                    break
+                }
+            }
+            Triple(baseName, file.extension ?: "", file)
+        }
+
+        return filesWithBaseName.groupBy { it.first + "." + it.second }
+            .map { (key, triples) ->
+                val first = triples.first()
+                val baseName = first.first
+                val extension = first.second
+                val fileList = triples.map { it.third }
+                GroupedImage(
+                    files = fileList,
+                    newName = "$baseName.${extension}",
+                    baseName = baseName,
+                    extension = extension
+                )
+            }
+    }
+
     private fun parseScaleMappings(mappings: String): Map<String, String> {
         return mappings.lines()
             .map { it.trim() }
@@ -22,6 +61,71 @@ object ImageImporter {
                 val parts = it.split("=", limit = 2)
                 parts[0].trim() to parts[1].trim()
             }
+    }
+
+    fun importGroupedImages(project: Project, groupedImages: List<GroupedImage>) {
+        val settings = AppSettingsState.instance
+        val projectBasePath = project.basePath ?: return
+        val scaleMap = parseScaleMappings(settings.scaleMappings)
+
+        val groupedByRule = groupedImages.mapNotNull { groupedImage ->
+            val extension = groupedImage.extension.toLowerCase()
+            val rule = settings.importRules.find {
+                it.extensions.split(',').map { ext -> ext.trim().toLowerCase() }.contains(extension)
+            }
+            if (rule != null) Pair(rule, groupedImage) else null
+        }.groupBy({ it.first }, { it.second })
+
+        for ((rule, ruleGroups) in groupedByRule) {
+            val generatedCode = mutableListOf<String>()
+            for (groupedImage in ruleGroups) {
+                val targetBaseDir = File("$projectBasePath/${rule.targetDirectory}")
+                if (!targetBaseDir.exists()) {
+                    targetBaseDir.mkdirs()
+                }
+
+                val newBaseName = groupedImage.newName.substringBeforeLast('.')
+                val newExtension = groupedImage.newName.substringAfterLast('.')
+                
+                for (file in groupedImage.files) {
+                    var targetDir = targetBaseDir
+                    var newFileName = "$newBaseName.$newExtension"
+
+                    if (rule.applyScaling) {
+                        val sortedSuffixes = scaleMap.keys.sortedByDescending { it.length }
+                        for (suffix in sortedSuffixes) {
+                            if (file.nameWithoutExtension.endsWith(suffix)) {
+                                val dirName = scaleMap[suffix]!!
+                                val scaleDir = File(targetBaseDir, dirName)
+                                if (!scaleDir.exists()) scaleDir.mkdirs()
+                                targetDir = scaleDir
+                                break
+                            }
+                        }
+                    }
+
+                    val targetFile = File(targetDir, newFileName)
+                    file.inputStream.use { input ->
+                        targetFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+                val variableName = newBaseName.replaceFirstChar { it.lowercase(Locale.ROOT) }
+                val finalFileName = "$newBaseName.$newExtension"
+                val codeLine = rule.codeTemplate
+                    .replace("\${VARIABLE_NAME}", variableName)
+                    .replace("\${FILE_NAME}", finalFileName)
+                generatedCode.add(codeLine)
+            }
+
+            if (generatedCode.isNotEmpty()) {
+                val success = tryAutoPaste(project, rule, generatedCode)
+                if (!success) {
+                    GeneratedCodeDialog(project, generatedCode.joinToString("\n")).show()
+                }
+            }
+        }
     }
 
     fun importImages(project: Project, files: List<VirtualFile>) {

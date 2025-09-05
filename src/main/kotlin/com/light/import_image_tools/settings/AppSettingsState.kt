@@ -12,6 +12,7 @@ import com.intellij.util.xmlb.annotations.XCollection
     storages = [Storage("ImportImageToolsPlugin.xml")]
 )
 data class AppSettingsState(
+    var showRenameDialog: Boolean = true,
     var scaleMappings: String = "@3x=3.0x\n@2x=2.0x",
     @XCollection
     var importRules: MutableList<ImageImportRule> = mutableListOf()
