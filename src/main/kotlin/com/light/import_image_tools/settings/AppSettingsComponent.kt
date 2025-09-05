@@ -23,7 +23,7 @@ class AppSettingsComponent {
     private val rulesTableModel = RulesTableModel(mutableListOf())
     private val rulesTable = JBTable(rulesTableModel)
     private val scaleMappingsComponent = JBTextArea(5, 40)
-    private val showRenameDialogCheckBox = JCheckBox("导入前弹窗重命名")
+    private val showRenameDialogCheckBox = JCheckBox("导入前弹出重命名弹窗")
 
     init {
         // Table setup
@@ -43,6 +43,10 @@ class AppSettingsComponent {
         val decoratedTable = decorator.createPanel()
         // Allow the table to shrink and grow naturally with the available space.
         decoratedTable.preferredSize = JBDimension(600, 200)
+
+        val tablePanel = JPanel(BorderLayout(0, 5))
+        tablePanel.add(JBLabel("导入规则 (Import Rules):"), BorderLayout.NORTH)
+        tablePanel.add(decoratedTable, BorderLayout.CENTER)
 
         // show rename dialog
         val showRenameDialogPanel = JPanel(BorderLayout(0, 5))
@@ -84,18 +88,16 @@ class AppSettingsComponent {
             </html>
         """.trimIndent()
         val descriptionLabel = JBLabel(descriptionText)
-        descriptionLabel.border = EmptyBorder(10, 0, 0, 0) // Add some space above
 
-        val topPanel = JPanel(BorderLayout(0, 10))
-        topPanel.add(showRenameDialogPanel, BorderLayout.NORTH)
-        topPanel.add(scaleMappingsPanel, BorderLayout.CENTER)
-
+        val southPanel = JPanel(BorderLayout(0, 10))
+        southPanel.add(scaleMappingsPanel, BorderLayout.NORTH)
+        southPanel.add(descriptionLabel, BorderLayout.SOUTH)
 
         // Main content panel that holds all components
         val contentPanel = JPanel(BorderLayout(0, 10))
-        contentPanel.add(topPanel, BorderLayout.NORTH)
-        contentPanel.add(decoratedTable, BorderLayout.CENTER)
-        contentPanel.add(descriptionLabel, BorderLayout.SOUTH)
+        contentPanel.add(showRenameDialogPanel, BorderLayout.NORTH)
+        contentPanel.add(tablePanel, BorderLayout.CENTER)
+        contentPanel.add(southPanel, BorderLayout.SOUTH)
         contentPanel.border = JBUI.Borders.empty(10)
 
         // The main panel is now a scroll pane to allow for vertical scrolling.

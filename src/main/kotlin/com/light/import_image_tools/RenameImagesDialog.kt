@@ -35,7 +35,7 @@ class RenameImagesDialog(
     }
 
     init {
-        title = "Rename Images"
+        title = "重命名&预览"
         previewPanel.add(previewLabel, BorderLayout.CENTER)
         previewPanel.preferredSize = Dimension(300, 200)
 
@@ -136,7 +136,7 @@ class RenameImagesDialog(
 }
 
 class RenameTableModel(private val groupedImages: List<GroupedImage>) : AbstractTableModel() {
-    private val columnNames = arrayOf("File Name")
+    private val columnNames = arrayOf("文件名")
 
     override fun getRowCount(): Int = groupedImages.size
     override fun getColumnCount(): Int = columnNames.size
