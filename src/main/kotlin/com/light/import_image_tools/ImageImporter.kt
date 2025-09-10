@@ -44,11 +44,15 @@ object ImageImporter {
                 val baseName = first.first
                 val extension = first.second
                 val fileList = triples.map { it.third }
+                val rule = rules.find { rule ->
+                    rule.extensions.split(',').map { ext -> ext.trim().lowercase(Locale.getDefault()) }.contains(extension)
+                }!!
                 GroupedImage(
                     files = fileList,
                     newName = "$baseName.${extension}",
                     baseName = baseName,
-                    extension = extension
+                    extension = extension,
+                    rule = rule
                 )
             }
     }
