@@ -69,15 +69,15 @@ object ImageImporter {
         val scaleMap = parseScaleMappings(settings.scaleMappings)
 
         val groupedByRule = groupedImages.mapNotNull { groupedImage ->
-            val extension = groupedImage.extension.toLowerCase()
+            val extension = groupedImage.extension.lowercase(Locale.getDefault())
             val rule = settings.importRules.find {
-                it.extensions.split(',').map { ext -> ext.trim().toLowerCase() }.contains(extension)
+                it.extensions.split(',').map { ext -> ext.trim().lowercase(Locale.getDefault()) }.contains(extension)
             }
             if (rule != null) Pair(rule, groupedImage) else null
         }.groupBy({ it.first }, { it.second })
 
         for ((rule, ruleGroups) in groupedByRule) {
-            val generatedCode = mutableListOf<String>()
+            val unpastedCode = mutableListOf<String>()
             for (groupedImage in ruleGroups) {
                 val targetBaseDir = File("$projectBasePath/${rule.targetDirectory}")
                 if (!targetBaseDir.exists()) {
@@ -86,10 +86,10 @@ object ImageImporter {
 
                 val newBaseName = groupedImage.newName.substringBeforeLast('.')
                 val newExtension = groupedImage.newName.substringAfterLast('.')
-                
+
                 for (file in groupedImage.files) {
                     var targetDir = targetBaseDir
-                    var newFileName = "$newBaseName.$newExtension"
+                    val newFileName = "$newBaseName.$newExtension"
 
                     if (rule.applyScaling) {
                         val sortedSuffixes = scaleMap.keys.sortedByDescending { it.length }
@@ -111,19 +111,26 @@ object ImageImporter {
                         }
                     }
                 }
-                val variableName = newBaseName.replaceFirstChar { it.lowercase(Locale.ROOT) }
+                val variableName = newBaseName.replaceFirstChar { it.lowercase(Locale.getDefault()) }
                 val finalFileName = "$newBaseName.$newExtension"
+                val baseTargetFile = File(targetBaseDir, finalFileName)
+                val relativePath = baseTargetFile.path.removePrefix("$projectBasePath/").removePrefix("/")
                 val codeLine = rule.codeTemplate
                     .replace("\${VARIABLE_NAME}", variableName)
                     .replace("\${FILE_NAME}", finalFileName)
-                generatedCode.add(codeLine)
+                    .replace("\${RELATIVE_PATH}", relativePath)
+
+                if (rule.pasteTarget.isNotBlank()) {
+                    if (!upsertCodeDeclaration(project, rule, variableName, codeLine)) {
+                        unpastedCode.add(codeLine)
+                    }
+                } else {
+                    unpastedCode.add(codeLine)
+                }
             }
 
-            if (generatedCode.isNotEmpty()) {
-                val success = tryAutoPaste(project, rule, generatedCode)
-                if (!success) {
-                    GeneratedCodeDialog(project, generatedCode.joinToString("\n")).show()
-                }
+            if (unpastedCode.isNotEmpty()) {
+                GeneratedCodeDialog(project, unpastedCode.joinToString("\n")).show()
             }
         }
     }
@@ -137,16 +144,16 @@ object ImageImporter {
 
         // Group files by the rule they match
         val groupedByRule = allFiles.mapNotNull { file ->
-            val extension = file.extension?.toLowerCase()
+            val extension = file.extension?.lowercase(Locale.getDefault())
             val rule = settings.importRules.find {
-                it.extensions.split(',').map { ext -> ext.trim().toLowerCase() }.contains(extension)
+                it.extensions.split(',').map { ext -> ext.trim().lowercase(Locale.getDefault()) }.contains(extension)
             }
             if (rule != null) Pair(rule, file) else null
         }.groupBy({ it.first }, { it.second })
 
 
         for ((rule, ruleFiles) in groupedByRule) {
-            val generatedCode = mutableListOf<String>()
+            val unpastedCode = mutableListOf<String>()
             val processedBaseNames = mutableSetOf<String>()
 
             for (file in ruleFiles) {
@@ -188,45 +195,61 @@ object ImageImporter {
                         .replace("\${VARIABLE_NAME}", variableName)
                         .replace("\${RELATIVE_PATH}", relativePath)
                         .replace("\${FILE_NAME}", newFileName)
-                    generatedCode.add(codeLine)
+
+                    if (rule.pasteTarget.isNotBlank()) {
+                        if (!upsertCodeDeclaration(project, rule, variableName, codeLine)) {
+                            unpastedCode.add(codeLine)
+                        }
+                    } else {
+                        unpastedCode.add(codeLine)
+                    }
                 }
             }
 
-            if (generatedCode.isNotEmpty()) {
-                val success = tryAutoPaste(project, rule, generatedCode)
-                if (!success) {
-                    // Fallback to showing the dialog
-                    GeneratedCodeDialog(project, generatedCode.joinToString("\n")).show()
-                }
+            if (unpastedCode.isNotEmpty()) {
+                // Fallback to showing the dialog
+                GeneratedCodeDialog(project, unpastedCode.joinToString("\n")).show()
             }
         }
     }
 
-    private fun tryAutoPaste(project: Project, rule: ImageImportRule, codeLines: List<String>): Boolean {
+    private fun upsertCodeDeclaration(project: Project, rule: ImageImportRule, variableName: String, codeLine: String): Boolean {
         if (rule.pasteTarget.isBlank()) return false
-        
+
         val parts = rule.pasteTarget.split("::")
         if (parts.size < 2) return false
 
         val filePath = parts[0].trim()
         val anchor = parts[1].trim()
-        val position = if (parts.size > 2) parts[2].trim().toLowerCase() else "after"
+        val position = if (parts.size > 2) parts[2].trim().lowercase(Locale.getDefault()) else "after"
 
         val fileToModify = LocalFileSystem.getInstance().findFileByPath("${project.basePath}/$filePath") ?: return false
         val document = runReadAction { FileDocumentManager.getInstance().getDocument(fileToModify) } ?: return false
-        
+
         val text = document.text
+        val regex = Regex("""\b${Regex.escape(variableName)}\b""")
+        val match = regex.find(text)
+
+        if (match != null) {
+            // Found: replace line
+            WriteCommandAction.runWriteCommandAction(project) {
+                val lineNumber = document.getLineNumber(match.range.first)
+                val lineStartOffset = document.getLineStartOffset(lineNumber)
+                val lineEndOffset = document.getLineEndOffset(lineNumber)
+                document.replaceString(lineStartOffset, lineEndOffset, codeLine)
+            }
+            return true
+        }
+
+        // Not found, so we try to insert.
         val anchorIndex = text.indexOf(anchor)
-        if (anchorIndex == -1) return false
-        
-        val anchorLineNumber = document.getLineNumber(anchorIndex)
-        val targetLineNumber = if (position == "before") anchorLineNumber else anchorLineNumber + 1
-        
-        val textToInsert = codeLines.joinToString("\n", postfix = "\n")
-        val offset = document.getLineStartOffset(targetLineNumber)
+        if (anchorIndex == -1) return false // Anchor not found, can't insert.
 
         WriteCommandAction.runWriteCommandAction(project) {
-            document.insertString(offset, textToInsert)
+            val anchorLineNumber = document.getLineNumber(anchorIndex)
+            val targetLineNumber = if (position == "before") anchorLineNumber else anchorLineNumber + 1
+            val offset = document.getLineStartOffset(targetLineNumber)
+            document.insertString(offset, "$codeLine\n")
         }
         return true
     }
