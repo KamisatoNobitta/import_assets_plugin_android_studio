@@ -142,6 +142,13 @@ class RenameImagesDialog(
     fun getRenamedImages(): List<GroupedImage> {
         return groupedImages
     }
+
+    override fun doOKAction() {
+        if (table.isEditing) {
+            table.cellEditor.stopCellEditing()
+        }
+        super.doOKAction()
+    }
 }
 
 class RenameTableModel(private val groupedImages: List<GroupedImage>) : AbstractTableModel() {
