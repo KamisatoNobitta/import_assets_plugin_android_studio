@@ -207,13 +207,16 @@ class RenameImagesDialog(
 
         if (isConflict) {
             previewTitle.text = "<html><center><b>文件已存在</b><br>左: 已有文件 -> 右: 新文件</center></html>"
-            previewContentPanel.layout = GridLayout(1, 2, 0, 0) // No gap
+            previewContentPanel.layout = BorderLayout()
             val existingImagePanel = createImagePreviewPanel(existingVFile!!)
             val newImagePanel = createImagePreviewPanel(groupedImage.files.first())
-            // Add a border to the left panel to act as a divider
-            existingImagePanel.border = MatteBorder(0, 0, 0, 1, JBColor.border())
-            previewContentPanel.add(existingImagePanel)
-            previewContentPanel.add(newImagePanel)
+
+            val comparisonSplitter = OnePixelSplitter(false)
+            comparisonSplitter.firstComponent = existingImagePanel
+            comparisonSplitter.secondComponent = newImagePanel
+            comparisonSplitter.proportion = 0.5f
+
+            previewContentPanel.add(comparisonSplitter, BorderLayout.CENTER)
         } else {
             previewTitle.text = "预览"
             previewContentPanel.layout = BorderLayout()
