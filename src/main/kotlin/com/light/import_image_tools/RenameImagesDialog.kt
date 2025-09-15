@@ -9,18 +9,19 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.table.JBTable
 import com.intellij.util.SVGLoader
-import java.awt.BorderLayout
-import java.awt.Dimension
-import java.awt.GridLayout
-import java.awt.Image
+import java.awt.*
+import java.awt.event.ComponentAdapter
+import java.awt.event.ComponentEvent
 import java.awt.event.KeyEvent
 import java.io.File
 import java.io.IOException
 import javax.imageio.ImageIO
 import javax.swing.*
+import javax.swing.border.MatteBorder
 import javax.swing.event.TableModelEvent
 import javax.swing.table.AbstractTableModel
 import com.light.import_image_tools.settings.ImageImportRule
+import com.intellij.ui.JBColor
 
 data class GroupedImage(
     val files: List<VirtualFile>,
@@ -29,6 +30,96 @@ data class GroupedImage(
     val extension: String,
     val rule: ImageImportRule
 )
+
+private class ImagePreviewComponent : JComponent() {
+    private var originalImage: Image? = null
+    private var scaledImage: Image? = null
+    private var message: String? = null
+
+    private val checkerColor1 = JBColor(Color(240, 240, 240), Color(60, 60, 60))
+    private val checkerColor2 = JBColor(Color(255, 255, 255), Color(70, 70, 70))
+    private val checkerSize = 10
+
+    init {
+        addComponentListener(object : ComponentAdapter() {
+            override fun componentResized(e: ComponentEvent?) {
+                if (originalImage != null) {
+                    scaledImage = scaleImage(originalImage!!, width, height)
+                }
+            }
+        })
+    }
+
+    fun setImage(img: Image?) {
+        this.originalImage = img
+        this.message = null
+        if (img != null && width > 0 && height > 0) {
+            scaledImage = scaleImage(img, width, height)
+        } else {
+            scaledImage = img
+        }
+        revalidate()
+        repaint()
+    }
+
+    fun setMessage(msg: String) {
+        this.originalImage = null
+        this.scaledImage = null
+        this.message = msg
+        revalidate()
+        repaint()
+    }
+
+    override fun paintComponent(g: Graphics) {
+        super.paintComponent(g)
+
+        for (row in 0 until height step checkerSize) {
+            for (col in 0 until width step checkerSize) {
+                g.color = if ((row / checkerSize + col / checkerSize) % 2 == 0) checkerColor1 else checkerColor2
+                g.fillRect(col, row, checkerSize, checkerSize)
+            }
+        }
+
+        if (scaledImage != null) {
+            val x = (width - scaledImage!!.getWidth(null)) / 2
+            val y = (height - scaledImage!!.getHeight(null)) / 2
+            g.drawImage(scaledImage, x, y, null)
+        } else if (message != null) {
+            g.color = JBColor.foreground()
+            val g2d = g as Graphics2D
+            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+            val fm = g.getFontMetrics()
+            val stringWidth = fm.stringWidth(message)
+            val stringAscent = fm.ascent
+            val x = (width - stringWidth) / 2
+            val y = (height + stringAscent) / 2
+            g.drawString(message, x, y)
+        }
+    }
+
+    private fun scaleImage(image: Image, maxWidth: Int, maxHeight: Int): Image {
+        val imageWidth = image.getWidth(null)
+        val imageHeight = image.getHeight(null)
+        if (imageWidth <= 0 || imageHeight <= 0 || (imageWidth <= maxWidth && imageHeight <= maxHeight)) return image
+
+        val ratio = imageWidth.toDouble() / imageHeight.toDouble()
+
+        var newWidth = imageWidth
+        var newHeight = imageHeight
+
+        if (imageWidth > maxWidth) {
+            newWidth = maxWidth
+            newHeight = (newWidth / ratio).toInt()
+        }
+
+        if (newHeight > maxHeight) {
+            newHeight = maxHeight
+            newWidth = (newHeight * ratio).toInt()
+        }
+
+        return image.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH)
+    }
+}
 
 class RenameImagesDialog(
     private val project: Project?,
@@ -116,9 +207,11 @@ class RenameImagesDialog(
 
         if (isConflict) {
             previewTitle.text = "<html><center><b>文件已存在</b><br>左: 已有文件 -> 右: 新文件</center></html>"
-            previewContentPanel.layout = GridLayout(1, 2, 5, 0)
+            previewContentPanel.layout = GridLayout(1, 2, 0, 0) // No gap
             val existingImagePanel = createImagePreviewPanel(existingVFile!!)
             val newImagePanel = createImagePreviewPanel(groupedImage.files.first())
+            // Add a border to the left panel to act as a divider
+            existingImagePanel.border = MatteBorder(0, 0, 0, 1, JBColor.border())
             previewContentPanel.add(existingImagePanel)
             previewContentPanel.add(newImagePanel)
         } else {
@@ -133,30 +226,19 @@ class RenameImagesDialog(
     }
 
     private fun createImagePreviewPanel(file: VirtualFile): JComponent {
-        val panel = JPanel(BorderLayout())
-        val label = JBLabel()
-        label.horizontalAlignment = SwingConstants.CENTER
-        label.verticalAlignment = SwingConstants.CENTER
-
+        val previewComponent = ImagePreviewComponent()
         try {
             val image = loadImage(file)
             if (image != null) {
-                // Defer scaling until the component is sized
-                SwingUtilities.invokeLater {
-                    val panelWidth = panel.width.takeIf { it > 0 } ?: 200
-                    val panelHeight = panel.height.takeIf { it > 0 } ?: 200
-                    label.icon = ImageIcon(scaleImage(image, panelWidth, panelHeight))
-                }
+                previewComponent.setImage(image)
             } else {
-                label.text = "<html><center>不支持查看该格式</center></html>"
+                previewComponent.setMessage("不支持查看该格式")
             }
         } catch (e: Exception) {
-            label.text = "<html><center>无法加载预览</center></html>"
+            previewComponent.setMessage("无法加载预览")
             e.printStackTrace()
         }
-
-        panel.add(label, BorderLayout.CENTER)
-        return panel
+        return previewComponent
     }
 
     private fun loadImage(file: VirtualFile): Image? {
@@ -171,29 +253,6 @@ class RenameImagesDialog(
             e.printStackTrace()
             null
         }
-    }
-
-    private fun scaleImage(image: Image, maxWidth: Int, maxHeight: Int): Image {
-        val imageWidth = image.getWidth(null)
-        val imageHeight = image.getHeight(null)
-        if (imageWidth <= 0 || imageHeight <= 0) return image
-
-        val ratio = imageWidth.toDouble() / imageHeight.toDouble()
-
-        var newWidth = imageWidth
-        var newHeight = imageHeight
-
-        if (imageWidth > maxWidth) {
-            newWidth = maxWidth
-            newHeight = (newWidth / ratio).toInt()
-        }
-
-        if (newHeight > maxHeight) {
-            newHeight = maxHeight
-            newWidth = (newHeight * ratio).toInt()
-        }
-
-        return image.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH)
     }
 
     fun getRenamedImages(): List<GroupedImage> {
