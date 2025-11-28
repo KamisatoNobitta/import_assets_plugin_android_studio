@@ -246,6 +246,8 @@ class RenameImagesDialog(
 
     private fun loadImage(file: VirtualFile): Image? {
         return try {
+            // 刷新文件以确保获取最新内容，避免缓存问题
+            file.refresh(false, false)
             val extension = file.extension?.lowercase()
             when (extension) {
                 "svg" -> SVGLoader.load(null, file.inputStream, 2.0f)
