@@ -235,12 +235,76 @@ object ImageImporter {
         val match = regex.find(text)
 
         if (match != null) {
-            // Found: replace line
+            // Found: replace the entire declaration (handle multi-line declarations)
             WriteCommandAction.runWriteCommandAction(project) {
-                val lineNumber = document.getLineNumber(match.range.first)
-                val lineStartOffset = document.getLineStartOffset(lineNumber)
-                val lineEndOffset = document.getLineEndOffset(lineNumber)
-                document.replaceString(lineStartOffset, lineEndOffset, codeLine)
+                val startLineNumber = document.getLineNumber(match.range.first)
+                val lineStartOffset = document.getLineStartOffset(startLineNumber)
+                
+                // Get the indentation of the declaration line
+                val declarationLine = text.substring(lineStartOffset, document.getLineEndOffset(startLineNumber))
+                val baseIndent = declarationLine.takeWhile { it.isWhitespace() }.length
+                
+                // Find the end of the declaration
+                var endOffset = match.range.first
+                var currentLineNum = startLineNumber
+                
+                // First, try to find a semicolon on the same or following lines
+                var foundSemicolon = false
+                while (endOffset < text.length) {
+                    val char = text[endOffset]
+                    
+                    if (char == ';') {
+                        foundSemicolon = true
+                        endOffset++
+                        // Skip trailing whitespace on the same line
+                        while (endOffset < text.length && text[endOffset] != '\n' && text[endOffset] != '\r' && text[endOffset].isWhitespace()) {
+                            endOffset++
+                        }
+                        break
+                    }
+                    
+                    if (char == '\n' || char == '\r') {
+                        // Move to next line
+                        if (char == '\r' && endOffset + 1 < text.length && text[endOffset + 1] == '\n') {
+                            endOffset++ // Skip \r\n
+                        }
+                        endOffset++
+                        currentLineNum++
+                        
+                        if (currentLineNum >= document.lineCount) break
+                        
+                        val nextLineStart = document.getLineStartOffset(currentLineNum)
+                        val nextLineEnd = document.getLineEndOffset(currentLineNum)
+                        val nextLine = text.substring(nextLineStart, nextLineEnd)
+                        
+                        // Check if next line is empty or has less/equal indentation (and is not just whitespace)
+                        val nextLineIndent = nextLine.takeWhile { it.isWhitespace() }.length
+                        val nextLineContent = nextLine.trim()
+                        
+                        if (nextLineContent.isEmpty()) {
+                            // Empty line, continue to check next line
+                            continue
+                        } else if (nextLineIndent <= baseIndent) {
+                            // Next line has same or less indentation and has content - declaration ended
+                            break
+                        }
+                        // Continue if next line has more indentation (continuation of declaration)
+                    } else {
+                        endOffset++
+                    }
+                }
+                
+                // If no semicolon found and we're still on the first line, just use end of line
+                if (!foundSemicolon && currentLineNum == startLineNumber) {
+                    endOffset = document.getLineEndOffset(startLineNumber)
+                }
+                
+                // Skip trailing newlines
+                while (endOffset < text.length && (text[endOffset] == '\n' || text[endOffset] == '\r')) {
+                    endOffset++
+                }
+                
+                document.replaceString(lineStartOffset, endOffset, "$codeLine\n")
             }
             return true
         }
